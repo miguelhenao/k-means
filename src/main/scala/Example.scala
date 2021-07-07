@@ -40,6 +40,7 @@ object Example {
       }
       centroids = recomputeCentroids
       iterations += 1
+      println(iterations)
     }
     centroids
   }
@@ -97,17 +98,21 @@ object Example {
   def main(args: Array[String]): Unit = {
     val data = csvReader.readIris()
     val centroids = initialCentroids(3, data)
-    val finalCentroids = cluster(data, centroids)
+    val t1 = System.nanoTime
 
-    println("Initial centroids")
-    for (centroid <- centroids) {
-      println("\t" + strPoint(centroid))
+    var time = config(
+      Key.exec.benchRuns -> 1,
+      Key.verbose -> true
+    ) withWarmer {
+      new Warmer.Default
+    } withMeasurer {
+      new Measurer.IgnoringGC
+    } measure {
+      val finalCentroids = cluster(data, centroids)
     }
 
-    println("Final centroids")
-    for (centroid <- finalCentroids) {
-      println("\t" + strPoint(centroid))
-    }
+    println(s"Time: $time")
+
   }
 
 }
