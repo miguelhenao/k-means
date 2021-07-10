@@ -3,6 +3,7 @@ import org.scalameter._
 import scala.collection.parallel._
 import scala.collection.parallel.CollectionConverters._
 import scala.math.BigDecimal
+import scala.math.abs
 
 import scala.io.Source
 
@@ -27,22 +28,41 @@ object Example {
     var SSE = Double.MaxValue
     var done = false
     var iterations = 0
-
-    val clustering = new Array[Int](size)
-    val distances = new Array[Double](size)
     var centroids = initialCentroids.clone
 
-    while (iterations < maxIterations) {
+    while (!done && iterations < maxIterations) {
+      var distances = new Array[Double](0)
       var recomputeCentroids = new Array[Array[Double]](0)
       val g1 = points.groupBy(x => nearestCentroid(x, centroids))
-      for ((_, points) <- g1) {
+
+      for ((centroid, points) <- g1) {
         recomputeCentroids +:= average(points)
+        distances :+= sumSquareDistance(centroid, points)
       }
       centroids = recomputeCentroids
       iterations += 1
-      println(iterations)
+
+      var p = 0
+ 			var currSSE = 0.0
+      while (p < k) {
+        currSSE += distances(p)
+        p += 1
+      }
+
+      if (abs(currSSE - SSE) < epsilon) {
+        done = true
+      }
+			SSE = currSSE
     }
     centroids
+  }
+
+  def sumSquareDistance(centroid: Array[Double], points: Array[Array[Double]]): Double = {
+    var sum = 0.0
+    points.foreach(point => {
+			sum += squareDistance(point, centroid)
+		})
+    sum
   }
 
   def average(points: Array[Array[Double]]) = {
@@ -108,11 +128,9 @@ object Example {
     } withMeasurer {
       new Measurer.IgnoringGC
     } measure {
-      val finalCentroids = cluster(data, centroids)
+			cluster(data, centroids)
     }
-
     println(s"Time: $time")
-
   }
 
 }
